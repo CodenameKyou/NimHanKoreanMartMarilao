@@ -24,6 +24,22 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  Menu,
+  X,
+  Upload,
+  Image as ImageIcon,
+  Check,
+  Star,
+  Search,
+  Filter,
+  Shield,
+  User,
+  Cpu,
+  Sparkles,
+  Clock,
+  Grid,
+  List,
+  AlertCircle,
 } from 'lucide-react';
 import { NimHanLogo } from './NimHanLogo';
 import {
@@ -117,11 +133,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // Portal UI State
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [darkMode, setDarkMode] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inactivitySecondsLeft, setInactivitySecondsLeft] = useState(900); // 15 mins auto-logout
 
-  // Product Form State
+  // Product Form & Photo Picker State
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [photoInputMode, setPhotoInputMode] = useState<'upload' | 'preset' | 'url'>('preset');
   const [prodForm, setProdForm] = useState({
     name: '',
     koreanName: '',
@@ -135,6 +153,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     isNew: true,
     expiryDate: '2027-03-15',
   });
+
+  // Product Flashcard Management Filters & Instant Toast
+  const [flashcardSearch, setFlashcardSearch] = useState('');
+  const [flashcardCategory, setFlashcardCategory] = useState<string>('All');
+  const [flashcardStatusFilter, setFlashcardStatusFilter] = useState<'ALL' | 'AVAILABLE' | 'SOLD OUT'>('ALL');
+  const [flashcardViewMode, setFlashcardViewMode] = useState<'cards' | 'table'>('cards');
+  const [statusToast, setStatusToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+
+  // System Activity / Audit Log Search & Role Filter
+  const [auditSearch, setAuditSearch] = useState('');
+  const [auditRoleFilter, setAuditRoleFilter] = useState<'ALL' | 'ADMIN' | 'EMPLOYEE' | 'SYSTEM'>('ALL');
 
   // Inventory Stock Adjustment State
   const [selectedProdIdForStock, setSelectedProdIdForStock] = useState<number>(products[0]?.id || 1);
@@ -323,7 +352,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     }
   };
 
-  // Toggle Product Availability with 1 Click
+  // Toggle Product Availability with 1 Click (Instantly Updates Public Storefront Flashcards)
   const handleToggleProductStatus = (product: Product) => {
     const nextStatus = product.status === 'AVAILABLE' ? 'SOLD OUT' : 'AVAILABLE';
     const nextStock = nextStatus === 'AVAILABLE' && product.stock === 0 ? 15 : product.stock;
@@ -336,6 +365,73 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       'PRODUCT_STATUS_TOGGLE',
       `Toggled "${product.name}" status to ${nextStatus} on public site.`
     );
+    setStatusToast({
+      message: `"${product.name}" is now marked as ${nextStatus}! Public website flashcards updated immediately.`,
+      type: 'success',
+    });
+    setTimeout(() => {
+      setStatusToast(null);
+    }, 4500);
+  };
+
+  // Toggle Best Seller Flag with 1 Click
+  const handleToggleBestSeller = (product: Product) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, isBestSeller: !p.isBestSeller } : p))
+    );
+    appendLog(
+      'ADMIN',
+      'ADMIN-MASTER',
+      'PRODUCT_FLAG_TOGGLE',
+      `Toggled Best Seller flag for "${product.name}".`
+    );
+  };
+
+  // Toggle New Arrival Flag with 1 Click
+  const handleToggleNewArrival = (product: Product) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, isNew: !p.isNew } : p))
+    );
+    appendLog(
+      'ADMIN',
+      'ADMIN-MASTER',
+      'PRODUCT_FLAG_TOGGLE',
+      `Toggled New Arrival flag for "${product.name}".`
+    );
+  };
+
+  // Curated Authentic Korean Grocery Photo Presets (12 Popular Items)
+  const PRESET_PRODUCT_PHOTOS = [
+    { name: 'Buldak Carbonara', category: 'Noodles', url: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&auto=format&fit=crop&q=80' },
+    { name: 'Shin Ramyun', category: 'Noodles', url: 'https://images.unsplash.com/photo-1612927601601-6638404737ce?w=600&auto=format&fit=crop&q=80' },
+    { name: 'Samyang 2x Spicy', category: 'Noodles', url: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=600&auto=format&fit=crop&q=80' },
+    { name: 'Jin Ramen Spicy', category: 'Noodles', url: 'https://images.unsplash.com/photo-1552611052-33e04de081de?w=600&auto=format&fit=crop&q=80' },
+    { name: 'Gochujang Paste', category: 'Pantry', url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80' },
+    { name: 'Tteokbokki Kit', category: 'Frozen', url: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80' },
+    { name: 'Banana Milk Drink', category: 'Beverages', url: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&auto=format&fit=crop&q=80' },
+    { name: 'Melona Melon Bar', category: 'Dessert', url: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=600&auto=format&fit=crop&q=80' },
+    { name: 'Fresh Kimchi Mat', category: 'Pantry', url: 'https://images.unsplash.com/photo-1583032015879-bf6b0c2688b1?w=600&auto=format&fit=crop&q=80' },
+    { name: 'Mandu Dumplings', category: 'Frozen', url: 'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=600&auto=format&fit=crop&q=80' },
+    { name: 'Pepero Almond', category: 'Snacks', url: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=600&auto=format&fit=crop&q=80' },
+    { name: 'Chilsung Cider', category: 'Beverages', url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&auto=format&fit=crop&q=80' },
+  ];
+
+  // Handle Local Photo File Upload (From Camera or Device)
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size exceeds 5MB. Please choose a smaller photo.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setProdForm((prev) => ({ ...prev, image: reader.result as string }));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Save Added or Edited Product
@@ -606,17 +702,37 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   return (
     <div className={`min-h-screen flex ${surfaceBg}`}>
-      {/* Left Sidebar Navigation */}
-      <aside className="w-64 bg-[#1B2A49] text-white flex flex-col justify-between shrink-0 border-r border-white/10">
+      {/* Mobile Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"
+        />
+      )}
+
+      {/* Left Sidebar Navigation (Responsive Slide-In Drawer on Mobile/Tablet) */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1B2A49] text-white flex flex-col justify-between border-r border-white/10 transition-transform duration-200 lg:static lg:translate-x-0 ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div>
-          <div className="p-5 border-b border-white/10">
-            <NimHanLogo size="sm" />
-            <div className="mt-2.5 text-xs font-semibold tracking-tight text-white">
-              NIM HAN KOREAN MART
+          <div className="p-5 border-b border-white/10 flex items-center justify-between">
+            <div>
+              <NimHanLogo size="sm" />
+              <div className="mt-2.5 text-xs font-semibold tracking-tight text-white">
+                NIM HAN KOREAN MART
+              </div>
+              <div className="text-[11px] text-[#C89B3C] font-medium">
+                Marilao Branch · Admin Console
+              </div>
             </div>
-            <div className="text-[11px] text-[#C89B3C] font-medium">
-              Marilao Branch · Admin Console
-            </div>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-neutral-300"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           <nav className="p-3 space-y-1">
@@ -635,7 +751,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id as AdminTab)}
+                  onClick={() => {
+                    setActiveTab(item.id as AdminTab);
+                    setMobileMenuOpen(false);
+                  }}
                   className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                     active
                       ? 'bg-[#C8102E] text-white shadow-xs'
@@ -680,38 +799,47 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
-        <header className={`px-8 py-4 border-b flex items-center justify-between ${cardBg}`}>
-          <div>
-            <div className={`text-xs font-mono ${mutedText}`}>
-              /admin/{activeTab}.php · Session Role: ADMIN
+        {/* Top Bar with Mobile Menu Toggle */}
+        <header className={`px-4 sm:px-8 py-3.5 sm:py-4 border-b flex items-center justify-between gap-3 ${cardBg}`}>
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-lg border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200"
+              aria-label="Open Navigation Menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="min-w-0">
+              <div className={`text-[11px] font-mono truncate ${mutedText}`}>
+                /admin/{activeTab}.php · Session: ADMIN
+              </div>
+              <h1 className="text-sm sm:text-lg font-bold tracking-tight truncate">
+                Marilao Administration
+              </h1>
             </div>
-            <h1 className="text-lg font-bold tracking-tight">
-              NIM HAN KOREAN MART Marilao Branch — Administration
-            </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               onClick={() => setDarkMode(!darkMode)}
               className={`p-2 rounded-lg border text-xs font-medium flex items-center gap-1.5 ${cardBg}`}
               title="Toggle Dark / Light Mode"
             >
               {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-              <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+              <span className="hidden sm:inline">{darkMode ? 'Light' : 'Dark'}</span>
             </button>
             <button
               onClick={handleDownloadInventoryCsv}
-              className="px-3.5 py-2 rounded-lg bg-[#1B2A49] hover:bg-[#111C33] text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
+              className="px-2.5 sm:px-3.5 py-2 rounded-lg bg-[#1B2A49] hover:bg-[#111C33] text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
-              Export Inventory CSV
+              <span className="hidden sm:inline">Export CSV</span>
             </button>
           </div>
         </header>
 
         {/* Module Body */}
-        <main className="flex-1 p-8 overflow-y-auto space-y-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-6 sm:space-y-8">
           {/* ================================================================
               MODULE A: DASHBOARD
              ================================================================ */}
@@ -873,153 +1001,739 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
              ================================================================ */}
           {activeTab === 'products' && (
             <div className="space-y-6">
+              {/* Header & Actions */}
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-bold">Product Flashcard Management</h2>
-                  <p className={`text-xs ${mutedText}`}>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold">Product Flashcard Management</h2>
+                    <span className="px-2 py-0.5 rounded-full bg-[#C8102E]/10 text-[#C8102E] text-[11px] font-bold">
+                      {products.length} SKUs
+                    </span>
+                  </div>
+                  <p className={`text-xs ${mutedText} mt-0.5`}>
                     One-click status toggles immediately update the public website flashcards.
                   </p>
                 </div>
-                <button
-                  onClick={() => {
-                    setEditingProduct(null);
-                    setShowProductModal(true);
-                  }}
-                  className="px-4 py-2.5 rounded-lg bg-[#C8102E] hover:bg-[#A50D26] text-white text-xs font-semibold flex items-center gap-2 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add New Korean Product
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingProduct(null);
+                      setProdForm({
+                        name: '',
+                        koreanName: '',
+                        category: 'Noodles',
+                        price: 95,
+                        stock: 25,
+                        lowStockThreshold: 10,
+                        description: '',
+                        image: PRESET_PRODUCT_PHOTOS[0].url,
+                        isBestSeller: false,
+                        isNew: true,
+                        expiryDate: '2027-03-15',
+                      });
+                      setPhotoInputMode('preset');
+                      setShowProductModal(true);
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-[#C8102E] hover:bg-[#A50D26] text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add New Korean Product</span>
+                  </button>
+                </div>
               </div>
 
-              <div className={`rounded-xl border overflow-hidden ${cardBg}`}>
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-neutral-200 dark:border-neutral-700 text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
-                      <th className="py-3.5 px-4">Product</th>
-                      <th className="py-3.5 px-4">Category</th>
-                      <th className="py-3.5 px-4 text-right">Price</th>
-                      <th className="py-3.5 px-4 text-right">Stock</th>
-                      <th className="py-3.5 px-4">Flags</th>
-                      <th className="py-3.5 px-4">Public Status (1-Click Toggle)</th>
-                      <th className="py-3.5 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-200/70 dark:divide-neutral-700/70 text-xs">
-                    {products.map((p) => {
-                      const isSoldOut = p.status === 'SOLD OUT' || p.stock <= 0;
-                      return (
-                        <tr key={p.id} className="hover:bg-neutral-500/5">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
+              {/* Instant Public Website Sync Notification Banner */}
+              {statusToast && (
+                <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-3 text-xs animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center gap-2 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>{statusToast.message}</span>
+                  </div>
+                  <button
+                    onClick={() => setStatusToast(null)}
+                    className="text-emerald-700 dark:text-emerald-300 hover:text-emerald-950 p-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Search, Filter & View Controls Toolbar */}
+              <div className={`p-4 rounded-xl border ${cardBg} space-y-3`}>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  {/* Search Bar */}
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={flashcardSearch}
+                      onChange={(e) => setFlashcardSearch(e.target.value)}
+                      placeholder="Search Korean ramen, snacks, drinks..."
+                      className="w-full pl-9 pr-8 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent text-xs focus:outline-none focus:border-[#C8102E]"
+                    />
+                    {flashcardSearch && (
+                      <button
+                        onClick={() => setFlashcardSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-0.5"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* View Mode Toggle: Flashcards Grid vs Table */}
+                  <div className="flex items-center gap-1.5 p-1 rounded-lg bg-neutral-500/10 self-start sm:self-auto shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setFlashcardViewMode('cards')}
+                      className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                        flashcardViewMode === 'cards'
+                          ? 'bg-white dark:bg-neutral-800 text-[#C8102E] shadow-xs'
+                          : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
+                      }`}
+                      title="Interactive Flashcards View"
+                    >
+                      <Grid className="w-3.5 h-3.5" />
+                      <span>Flashcards View</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFlashcardViewMode('table')}
+                      className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                        flashcardViewMode === 'table'
+                          ? 'bg-white dark:bg-neutral-800 text-[#C8102E] shadow-xs'
+                          : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
+                      }`}
+                      title="Compact Table View"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                      <span>Table View</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Pills: Categories & Status */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-neutral-200/60 dark:border-neutral-700/60 text-xs">
+                  {/* Category Pills */}
+                  <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                    {['All', 'Noodles', 'Snacks', 'Sauces', 'Drinks', 'Frozen'].map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setFlashcardCategory(cat)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                          flashcardCategory === cat
+                            ? 'bg-[#1B2A49] text-white'
+                            : 'bg-neutral-500/10 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-500/20'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Status Filter Pills */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setFlashcardStatusFilter('ALL')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold ${
+                        flashcardStatusFilter === 'ALL'
+                          ? 'bg-[#C8102E] text-white'
+                          : 'bg-neutral-500/10 text-neutral-500 hover:bg-neutral-500/20'
+                      }`}
+                    >
+                      All ({products.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFlashcardStatusFilter('AVAILABLE')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold ${
+                        flashcardStatusFilter === 'AVAILABLE'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20'
+                      }`}
+                    >
+                      Available ({availableCount})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFlashcardStatusFilter('SOLD OUT')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold ${
+                        flashcardStatusFilter === 'SOLD OUT'
+                          ? 'bg-[#C8102E] text-white'
+                          : 'bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20'
+                      }`}
+                    >
+                      Sold Out ({soldOutCount})
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filtered Products Logic */}
+              {(() => {
+                const filtered = products.filter((p) => {
+                  const matchSearch =
+                    p.name.toLowerCase().includes(flashcardSearch.toLowerCase()) ||
+                    p.koreanName.toLowerCase().includes(flashcardSearch.toLowerCase()) ||
+                    p.category.toLowerCase().includes(flashcardSearch.toLowerCase());
+                  const matchCat =
+                    flashcardCategory === 'All' || p.category.toLowerCase() === flashcardCategory.toLowerCase();
+                  const isSoldOut = p.status === 'SOLD OUT' || p.stock <= 0;
+                  const matchStatus =
+                    flashcardStatusFilter === 'ALL' ||
+                    (flashcardStatusFilter === 'AVAILABLE' && !isSoldOut) ||
+                    (flashcardStatusFilter === 'SOLD OUT' && isSoldOut);
+                  return matchSearch && matchCat && matchStatus;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className={`p-10 rounded-2xl border text-center space-y-3 ${cardBg}`}>
+                      <div className="w-12 h-12 rounded-full bg-neutral-500/10 flex items-center justify-center mx-auto text-neutral-400">
+                        <Search className="w-6 h-6" />
+                      </div>
+                      <h3 className="font-bold text-base">No Products Found</h3>
+                      <p className={`text-xs max-w-sm mx-auto ${mutedText}`}>
+                        No Korean products match &quot;{flashcardSearch}&quot; in category &quot;{flashcardCategory}&quot;.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setFlashcardSearch('');
+                          setFlashcardCategory('All');
+                          setFlashcardStatusFilter('ALL');
+                        }}
+                        className="px-4 py-2 rounded-lg bg-[#C8102E] text-white text-xs font-semibold"
+                      >
+                        Reset All Filters
+                      </button>
+                    </div>
+                  );
+                }
+
+                // ========================================================
+                // VIEW 1: FLASHCARDS GRID VIEW (Responsive on Phone, Tablet & Desktop)
+                // ========================================================
+                if (flashcardViewMode === 'cards') {
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                      {filtered.map((p) => {
+                        const isSoldOut = p.status === 'SOLD OUT' || p.stock <= 0;
+                        return (
+                          <div
+                            key={p.id}
+                            className={`rounded-2xl border flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 ${cardBg} ${
+                              isSoldOut ? 'border-red-300 dark:border-red-900/60' : 'border-neutral-200 dark:border-neutral-800'
+                            }`}
+                          >
+                            {/* Card Media Header */}
+                            <div className="relative aspect-4/3 bg-neutral-100 dark:bg-neutral-900 overflow-hidden">
                               <img
                                 src={p.image}
                                 alt={p.name}
                                 referrerPolicy="no-referrer"
-                                className={`w-11 h-11 rounded-lg object-cover shrink-0 ${
+                                className={`w-full h-full object-cover transition-transform duration-300 hover:scale-105 ${
                                   isSoldOut ? 'grayscale opacity-60' : ''
                                 }`}
                               />
-                              <div>
-                                <div className="font-semibold">{p.name}</div>
-                                <div className={`text-[11px] ${mutedText}`}>{p.koreanName}</div>
+
+                              {/* Category Badge */}
+                              <div className="absolute top-2.5 left-2.5">
+                                <span className="px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-[#C89B3C] text-[10px] font-bold uppercase tracking-wider">
+                                  {p.category}
+                                </span>
+                              </div>
+
+                              {/* Live Public Website Status Tag */}
+                              <div className="absolute top-2.5 right-2.5">
+                                {isSoldOut ? (
+                                  <span className="px-2.5 py-1 rounded-md bg-[#C8102E] text-white text-[11px] font-bold shadow-md flex items-center gap-1">
+                                    <span>✕ SOLD OUT</span>
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 rounded-md bg-emerald-600 text-white text-[11px] font-bold shadow-md flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                    <span>AVAILABLE</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Expiry Badge */}
+                              <div className="absolute bottom-2 left-2 text-[10px] font-mono-tabular px-2 py-0.5 rounded bg-black/60 text-neutral-200 backdrop-blur-xs">
+                                Exp: {p.expiryDate}
                               </div>
                             </div>
-                          </td>
-                          <td className="py-3 px-4">{p.category}</td>
-                          <td className="py-3 px-4 text-right font-mono-tabular font-semibold">
-                            ₱{p.price.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 text-right font-mono-tabular">
-                            <span
-                              className={
-                                p.stock === 0
-                                  ? 'text-[#C8102E] font-bold'
-                                  : p.stock <= p.lowStockThreshold
-                                  ? 'text-amber-600 font-bold'
-                                  : ''
-                              }
-                            >
-                              {p.stock}
-                            </span>
-                            <span className={`text-[11px] ml-1 ${mutedText}`}>
-                              (min {p.lowStockThreshold})
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="text-[11px] space-x-1">
-                              {p.isBestSeller && (
-                                <span className="text-[#C89B3C] font-semibold">Best Seller</span>
-                              )}
-                              {p.isBestSeller && p.isNew && <span>·</span>}
-                              {p.isNew && <span className="text-emerald-600 font-semibold">New</span>}
-                              {!p.isBestSeller && !p.isNew && <span className={mutedText}>Standard</span>}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <button
-                              onClick={() => handleToggleProductStatus(p)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
-                                isSoldOut
-                                  ? 'bg-[#C8102E] text-white hover:bg-[#A50D26]'
-                                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                              }`}
-                            >
-                              {isSoldOut ? 'SOLD OUT (Click -> Available)' : 'AVAILABLE (Click -> Sold Out)'}
-                            </button>
-                          </td>
-                          <td className="py-3 px-4 text-right space-x-2 whitespace-nowrap">
-                            <button
-                              onClick={() => {
-                                setEditingProduct(p);
-                                setProdForm({
-                                  name: p.name,
-                                  koreanName: p.koreanName,
-                                  category: p.category,
-                                  price: p.price,
-                                  stock: p.stock,
-                                  lowStockThreshold: p.lowStockThreshold,
-                                  description: p.description,
-                                  image: p.image,
-                                  isBestSeller: p.isBestSeller,
-                                  isNew: p.isNew,
-                                  expiryDate: p.expiryDate,
-                                });
-                                setShowProductModal(true);
-                              }}
-                              className="px-2.5 py-1 rounded border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-500/10 text-xs font-medium"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteProduct(p)}
-                              className="p-1.5 text-red-600 hover:bg-red-500/10 rounded"
-                              title="Delete Product"
-                            >
-                              <Trash2 className="w-4 h-4 inline" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
 
-              {/* Add/Edit Product Modal */}
+                            {/* Card Content Body */}
+                            <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                              <div>
+                                <h4 className="font-bold text-sm leading-snug line-clamp-1">{p.name}</h4>
+                                <div className={`text-xs line-clamp-1 font-medium ${mutedText}`}>
+                                  {p.koreanName || '대한민국 인기 상품'}
+                                </div>
+
+                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-neutral-200/60 dark:border-neutral-800/60 font-mono-tabular">
+                                  <div>
+                                    <span className="text-base font-extrabold text-[#C8102E]">
+                                      ₱{p.price.toFixed(2)}
+                                    </span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span
+                                      className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                                        p.stock === 0
+                                          ? 'bg-red-500/15 text-[#C8102E] font-bold'
+                                          : p.stock <= p.lowStockThreshold
+                                          ? 'bg-amber-500/15 text-amber-600 font-bold'
+                                          : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                                      }`}
+                                    >
+                                      {p.stock} units
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* ===== ONE-CLICK STATUS TOGGLE BUTTON (INSTANT PUBLIC WEBSITE UPDATE) ===== */}
+                              <div className="pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleProductStatus(p)}
+                                  className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all shadow-xs flex flex-col items-center justify-center gap-0.5 active:scale-98 ${
+                                    isSoldOut
+                                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                      : 'bg-rose-50 dark:bg-rose-950/40 text-[#C8102E] border border-rose-300 dark:border-rose-800 hover:bg-[#C8102E] hover:text-white'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-1.5">
+                                    {isSoldOut ? (
+                                      <>
+                                        <Check className="w-3.5 h-3.5" />
+                                        <span>1-Click Restore to AVAILABLE</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <X className="w-3.5 h-3.5" />
+                                        <span>1-Click Mark as SOLD OUT</span>
+                                      </>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] opacity-75 font-normal">
+                                    Syncs immediately to public storefront
+                                  </span>
+                                </button>
+                              </div>
+
+                              {/* Quick Flag Toggles & Edit/Delete Actions */}
+                              <div className="pt-2 border-t border-neutral-200/60 dark:border-neutral-800/60 flex items-center justify-between text-xs gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleBestSeller(p)}
+                                    className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                                      p.isBestSeller
+                                        ? 'bg-amber-500/20 border-amber-500 text-amber-600 dark:text-amber-300'
+                                        : 'border-neutral-300 dark:border-neutral-700 text-neutral-400'
+                                    }`}
+                                  >
+                                    ⭐ Best
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleNewArrival(p)}
+                                    className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                                      p.isNew
+                                        ? 'bg-sky-500/20 border-sky-500 text-sky-600 dark:text-sky-300'
+                                        : 'border-neutral-300 dark:border-neutral-700 text-neutral-400'
+                                    }`}
+                                  >
+                                    ✦ New
+                                  </button>
+                                </div>
+
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingProduct(p);
+                                      setProdForm({
+                                        name: p.name,
+                                        koreanName: p.koreanName,
+                                        category: p.category,
+                                        price: p.price,
+                                        stock: p.stock,
+                                        lowStockThreshold: p.lowStockThreshold,
+                                        description: p.description,
+                                        image: p.image,
+                                        isBestSeller: p.isBestSeller,
+                                        isNew: p.isNew,
+                                        expiryDate: p.expiryDate,
+                                      });
+                                      setPhotoInputMode('preset');
+                                      setShowProductModal(true);
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg border border-neutral-300 dark:border-neutral-700 font-semibold text-xs hover:bg-neutral-500/10"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteProduct(p)}
+                                    className="p-1 text-red-600 hover:bg-red-500/10 rounded-lg"
+                                    title="Delete Product"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+
+                // ========================================================
+                // VIEW 2: COMPACT TABLE VIEW (Horizontally Scrollable on Tablet)
+                // ========================================================
+                return (
+                  <div className={`rounded-xl border overflow-hidden ${cardBg}`}>
+                    <div className="overflow-x-auto min-w-full">
+                      <table className="w-full text-left border-collapse min-w-[760px]">
+                        <thead>
+                          <tr className="border-b border-neutral-200 dark:border-neutral-700 text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+                            <th className="py-3.5 px-4">Product Flashcard</th>
+                            <th className="py-3.5 px-4">Category</th>
+                            <th className="py-3.5 px-4 text-right">Price</th>
+                            <th className="py-3.5 px-4 text-right">Stock</th>
+                            <th className="py-3.5 px-4">Flags</th>
+                            <th className="py-3.5 px-4">1-Click Status Toggle (Live Website Sync)</th>
+                            <th className="py-3.5 px-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-200/70 dark:divide-neutral-700/70 text-xs">
+                          {filtered.map((p) => {
+                            const isSoldOut = p.status === 'SOLD OUT' || p.stock <= 0;
+                            return (
+                              <tr key={p.id} className="hover:bg-neutral-500/5">
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={p.image}
+                                      alt={p.name}
+                                      referrerPolicy="no-referrer"
+                                      className={`w-12 h-12 rounded-xl object-cover shrink-0 border border-neutral-200 dark:border-neutral-700 ${
+                                        isSoldOut ? 'grayscale opacity-60' : ''
+                                      }`}
+                                    />
+                                    <div>
+                                      <div className="font-semibold text-sm">{p.name}</div>
+                                      <div className={`text-[11px] ${mutedText}`}>{p.koreanName}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className="px-2 py-0.5 rounded bg-neutral-500/10 font-medium text-[11px]">
+                                    {p.category}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-right font-mono-tabular font-bold text-sm text-[#C8102E]">
+                                  ₱{p.price.toFixed(2)}
+                                </td>
+                                <td className="py-3 px-4 text-right font-mono-tabular">
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                                      p.stock === 0
+                                        ? 'bg-red-500/15 text-[#C8102E] font-bold'
+                                        : p.stock <= p.lowStockThreshold
+                                        ? 'bg-amber-500/15 text-amber-600 font-bold'
+                                        : 'text-neutral-700 dark:text-neutral-200'
+                                    }`}
+                                  >
+                                    {p.stock}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <div className="text-[11px] space-x-1">
+                                    {p.isBestSeller && (
+                                      <span className="text-[#C89B3C] font-semibold">⭐ Best</span>
+                                    )}
+                                    {p.isBestSeller && p.isNew && <span>·</span>}
+                                    {p.isNew && <span className="text-emerald-600 font-semibold">✦ New</span>}
+                                    {!p.isBestSeller && !p.isNew && <span className={mutedText}>Standard</span>}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <button
+                                    onClick={() => handleToggleProductStatus(p)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 whitespace-nowrap ${
+                                      isSoldOut
+                                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                        : 'bg-rose-50 text-[#C8102E] border border-rose-300 dark:bg-rose-950/40 dark:border-rose-800 hover:bg-[#C8102E] hover:text-white'
+                                    }`}
+                                  >
+                                    {isSoldOut ? (
+                                      <>
+                                        <Check className="w-3.5 h-3.5" />
+                                        <span>Restore AVAILABLE (1-Click)</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <X className="w-3.5 h-3.5" />
+                                        <span>Mark as SOLD OUT (1-Click)</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </td>
+                                <td className="py-3 px-4 text-right space-x-2 whitespace-nowrap">
+                                  <button
+                                    onClick={() => {
+                                      setEditingProduct(p);
+                                      setProdForm({
+                                        name: p.name,
+                                        koreanName: p.koreanName,
+                                        category: p.category,
+                                        price: p.price,
+                                        stock: p.stock,
+                                        lowStockThreshold: p.lowStockThreshold,
+                                        description: p.description,
+                                        image: p.image,
+                                        isBestSeller: p.isBestSeller,
+                                        isNew: p.isNew,
+                                        expiryDate: p.expiryDate,
+                                      });
+                                      setPhotoInputMode('preset');
+                                      setShowProductModal(true);
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-500/10 text-xs font-medium"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteProduct(p)}
+                                    className="p-1.5 text-red-600 hover:bg-red-500/10 rounded-lg"
+                                    title="Delete Product"
+                                  >
+                                    <Trash2 className="w-4 h-4 inline" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Add/Edit Product Modal with Rich Picture Option */}
               {showProductModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-                  <div className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${cardBg}`}>
-                    <h3 className="text-base font-bold mb-4">
-                      {editingProduct ? 'Edit Korean Product' : 'Add New Korean Product'}
-                    </h3>
-                    <form onSubmit={handleSaveProduct} className="space-y-3.5 text-xs">
-                      <div className="grid grid-cols-2 gap-3">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+                  <div className={`w-full max-w-lg rounded-2xl border p-5 sm:p-6 shadow-2xl my-8 ${cardBg}`}>
+                    <div className="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-700 mb-4">
+                      <div>
+                        <h3 className="text-base font-bold">
+                          {editingProduct ? 'Edit Korean Product' : 'Add New Korean Product'}
+                        </h3>
+                        <p className={`text-[11px] ${mutedText}`}>
+                          Add details and picture for public website flashcard
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowProductModal(false)}
+                        className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-neutral-500/10"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
+                      {/* ===== PICTURE OPTION SECTION ===== */}
+                      <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-500/5 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="font-bold flex items-center gap-1.5 text-[#C8102E] text-xs">
+                            <ImageIcon className="w-4 h-4" />
+                            <span>Product Picture / Photo</span>
+                          </label>
+                          <span className={`text-[11px] ${mutedText}`}>
+                            Upload phone photo, select preset, or paste URL
+                          </span>
+                        </div>
+
+                        {/* Live Photo Preview Card */}
+                        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+                          <div className="w-20 h-20 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 shrink-0 relative">
+                            {prodForm.image ? (
+                              <img
+                                src={prodForm.image}
+                                alt="Selected product photo preview"
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 text-[10px]">
+                                <ImageIcon className="w-6 h-6 mb-1 opacity-50" />
+                                No Image
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                              <span>Photo Selected & Live-Ready</span>
+                            </div>
+                            <p className={`text-[11px] mt-0.5 line-clamp-2 ${mutedText}`}>
+                              This image will render on the public website flashcards, walk-in shopping drawer, and search results.
+                            </p>
+                            {prodForm.image && (
+                              <button
+                                type="button"
+                                onClick={() => setProdForm({ ...prodForm, image: PRESET_PRODUCT_PHOTOS[0].url })}
+                                className="mt-1 text-[10px] text-[#C8102E] hover:underline font-semibold"
+                              >
+                                Reset to Default Photo
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Photo Mode Selector Tabs */}
+                        <div className="grid grid-cols-3 gap-1.5 p-1 rounded-lg bg-neutral-200/70 dark:bg-neutral-800 text-[11px] font-semibold">
+                          <button
+                            type="button"
+                            onClick={() => setPhotoInputMode('upload')}
+                            className={`py-1.5 rounded-md flex items-center justify-center gap-1 transition-all ${
+                              photoInputMode === 'upload'
+                                ? 'bg-white dark:bg-neutral-900 text-[#C8102E] shadow-xs'
+                                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900'
+                            }`}
+                          >
+                            <Camera className="w-3.5 h-3.5" />
+                            <span>Upload / Camera</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPhotoInputMode('preset')}
+                            className={`py-1.5 rounded-md flex items-center justify-center gap-1 transition-all ${
+                              photoInputMode === 'preset'
+                                ? 'bg-white dark:bg-neutral-900 text-[#C8102E] shadow-xs'
+                                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900'
+                            }`}
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>K-Mart Gallery</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPhotoInputMode('url')}
+                            className={`py-1.5 rounded-md flex items-center justify-center gap-1 transition-all ${
+                              photoInputMode === 'url'
+                                ? 'bg-white dark:bg-neutral-900 text-[#C8102E] shadow-xs'
+                                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900'
+                            }`}
+                          >
+                            <ImageIcon className="w-3.5 h-3.5" />
+                            <span>Web URL</span>
+                          </button>
+                        </div>
+
+                        {/* TAB 1: DEVICE UPLOAD / CAMERA */}
+                        {photoInputMode === 'upload' && (
+                          <div className="space-y-2 p-3 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 text-center">
+                            <label className="cursor-pointer block">
+                              <div className="w-10 h-10 rounded-full bg-[#C8102E]/10 text-[#C8102E] flex items-center justify-center mx-auto mb-1.5">
+                                <Upload className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-bold text-[#C8102E] hover:underline">
+                                Choose Photo from Device or Take Picture
+                              </span>
+                              <p className={`text-[10px] mt-0.5 ${mutedText}`}>
+                                Supports JPG, PNG, WEBP (Up to 5MB)
+                              </p>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                onChange={handleImageFileUpload}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                        )}
+
+                        {/* TAB 2: K-MART PRESET GALLERY (12 AUTHENTIC ITEMS) */}
+                        {photoInputMode === 'preset' && (
+                          <div className="space-y-1.5">
+                            <div className="text-[11px] font-semibold text-neutral-500">
+                              Tap to choose authentic Korean product photo:
+                            </div>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-1">
+                              {PRESET_PRODUCT_PHOTOS.map((preset) => {
+                                const selected = prodForm.image === preset.url;
+                                return (
+                                  <button
+                                    key={preset.name}
+                                    type="button"
+                                    onClick={() => setProdForm({ ...prodForm, image: preset.url })}
+                                    className={`p-1 rounded-xl border text-left transition-all relative group ${
+                                      selected
+                                        ? 'border-[#C8102E] bg-[#C8102E]/10 ring-2 ring-[#C8102E]'
+                                        : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-400 bg-white dark:bg-neutral-800'
+                                    }`}
+                                  >
+                                    <img
+                                      src={preset.url}
+                                      alt={preset.name}
+                                      className="w-full h-12 rounded-lg object-cover"
+                                    />
+                                    <div className="text-[10px] font-bold truncate mt-1 text-neutral-800 dark:text-neutral-200">
+                                      {preset.name}
+                                    </div>
+                                    <div className="text-[9px] text-[#C89B3C] font-semibold truncate">
+                                      {preset.category}
+                                    </div>
+                                    {selected && (
+                                      <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#C8102E] text-white flex items-center justify-center">
+                                        <Check className="w-2.5 h-2.5" />
+                                      </div>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* TAB 3: WEB IMAGE URL */}
+                        {photoInputMode === 'url' && (
+                          <div className="space-y-1.5">
+                            <label className="block text-[11px] font-semibold text-neutral-500">
+                              Direct Web Image URL:
+                            </label>
+                            <input
+                              type="url"
+                              value={prodForm.image}
+                              onChange={(e) => setProdForm({ ...prodForm, image: e.target.value })}
+                              placeholder="https://example.com/korean-product-photo.jpg"
+                              className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent text-xs focus:outline-none focus:border-[#C8102E]"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Product Name & Korean Name */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block font-medium mb-1">Product Name</label>
+                          <label className="block font-medium mb-1">Product Name (English)</label>
                           <input
                             type="text"
                             required
+                            placeholder="e.g. Samyang Buldak Hot Chicken"
                             value={prodForm.name}
                             onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent"
@@ -1031,12 +1745,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             type="text"
                             value={prodForm.koreanName}
                             onChange={(e) => setProdForm({ ...prodForm, koreanName: e.target.value })}
-                            placeholder="e.g. 까르보 불닭볶음면"
+                            placeholder="e.g. 삼양 불닭볶음면"
                             className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent"
                           />
                         </div>
                       </div>
 
+                      {/* Category, Price & Stock */}
                       <div className="grid grid-cols-3 gap-3">
                         <div>
                           <label className="block font-medium mb-1">Category</label>
@@ -1065,11 +1780,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           />
                         </div>
                         <div>
-                          <label className="block font-medium mb-1">Stock Quantity</label>
+                          <label className="block font-medium mb-1">Stock Count</label>
                           <input
                             type="number"
-                            required
                             min={0}
+                            required
                             value={prodForm.stock}
                             onChange={(e) => setProdForm({ ...prodForm, stock: Number(e.target.value) })}
                             className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent font-mono-tabular"
@@ -1077,20 +1792,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         </div>
                       </div>
 
+                      {/* Expiry Date & Low Stock Threshold */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block font-medium mb-1">Low-Stock Alert Threshold</label>
-                          <input
-                            type="number"
-                            value={prodForm.lowStockThreshold}
-                            onChange={(e) =>
-                              setProdForm({ ...prodForm, lowStockThreshold: Number(e.target.value) })
-                            }
-                            className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent font-mono-tabular"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-medium mb-1">Batch Expiry Date</label>
+                          <label className="block font-medium mb-1">Expiry Date</label>
                           <input
                             type="date"
                             value={prodForm.expiryDate}
@@ -1098,53 +1803,54 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent font-mono-tabular"
                           />
                         </div>
+                        <div>
+                          <label className="block font-medium mb-1">Low-Stock Alert Level</label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={prodForm.lowStockThreshold}
+                            onChange={(e) => setProdForm({ ...prodForm, lowStockThreshold: Number(e.target.value) })}
+                            className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent font-mono-tabular"
+                          />
+                        </div>
                       </div>
 
-                      <div>
-                        <label className="block font-medium mb-1">Short Description</label>
-                        <textarea
-                          rows={2}
-                          required
-                          value={prodForm.description}
-                          onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-6 pt-1">
-                        <label className="inline-flex items-center gap-2 cursor-pointer">
+                      {/* Flags Checkboxes */}
+                      <div className="flex items-center gap-4 pt-1">
+                        <label className="inline-flex items-center gap-2 cursor-pointer font-medium">
                           <input
                             type="checkbox"
                             checked={prodForm.isBestSeller}
-                            onChange={(e) =>
-                              setProdForm({ ...prodForm, isBestSeller: e.target.checked })
-                            }
+                            onChange={(e) => setProdForm({ ...prodForm, isBestSeller: e.target.checked })}
+                            className="w-4 h-4 accent-[#C8102E]"
                           />
-                          <span>Mark as Best Seller</span>
+                          <span>⭐ Best Seller Badge</span>
                         </label>
-                        <label className="inline-flex items-center gap-2 cursor-pointer">
+                        <label className="inline-flex items-center gap-2 cursor-pointer font-medium">
                           <input
                             type="checkbox"
                             checked={prodForm.isNew}
                             onChange={(e) => setProdForm({ ...prodForm, isNew: e.target.checked })}
+                            className="w-4 h-4 accent-sky-600"
                           />
-                          <span>Mark as New Arrival</span>
+                          <span>✦ New Arrival Badge</span>
                         </label>
                       </div>
 
-                      <div className="flex justify-end gap-2 pt-3">
+                      {/* Submit & Cancel Buttons */}
+                      <div className="pt-3 border-t border-neutral-200 dark:border-neutral-700 flex items-center justify-end gap-2">
                         <button
                           type="button"
                           onClick={() => setShowProductModal(false)}
-                          className="px-4 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700"
+                          className="px-4 py-2.5 rounded-lg border border-neutral-300 dark:border-neutral-700 font-semibold"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
-                          className="px-4 py-2 rounded-lg bg-[#C8102E] text-white font-semibold"
+                          className="px-5 py-2.5 rounded-lg bg-[#C8102E] hover:bg-[#A50D26] text-white font-bold transition-colors shadow-xs"
                         >
-                          Save Product
+                          {editingProduct ? 'Save Product Changes' : 'Publish Product to Public Site'}
                         </button>
                       </div>
                     </form>
@@ -1974,33 +2680,259 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           )}
 
           {/* ================================================================
-              MODULE G: ACTIVITY / AUDIT LOG
+              MODULE G: ACTIVITY / AUDIT LOG (Responsive Mobile & Desktop)
              ================================================================ */}
           {activeTab === 'logs' && (
-            <div className={`p-6 rounded-xl border ${cardBg}`}>
-              <h2 className="text-base font-bold mb-4">Complete System Activity & Audit Log</h2>
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-neutral-200 dark:border-neutral-700 text-neutral-500">
-                    <th className="py-2.5 px-3">Timestamp</th>
-                    <th className="py-2.5 px-3">Role</th>
-                    <th className="py-2.5 px-3">Actor ID</th>
-                    <th className="py-2.5 px-3">Action Code</th>
-                    <th className="py-2.5 px-3">Details</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200/60 dark:divide-neutral-700/60">
-                  {activityLogs.map((log) => (
-                    <tr key={log.id}>
-                      <td className="py-2.5 px-3 font-mono-tabular whitespace-nowrap">{log.timestamp}</td>
-                      <td className="py-2.5 px-3 font-mono font-semibold">{log.actorRole}</td>
-                      <td className="py-2.5 px-3 font-mono">{log.actorId}</td>
-                      <td className="py-2.5 px-3 font-mono text-[#C8102E]">{log.action}</td>
-                      <td className={`py-2.5 px-3 ${mutedText}`}>{log.details}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className={`p-4 sm:p-6 rounded-2xl border ${cardBg} space-y-4`}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-bold">Complete System Activity & Audit Log</h2>
+                    <span className="px-2 py-0.5 rounded-full bg-[#1B2A49] text-white text-[11px] font-bold">
+                      {activityLogs.length} Total
+                    </span>
+                  </div>
+                  <p className={`text-xs ${mutedText} mt-0.5`}>
+                    Immutable session audit trail capturing administrative changes, employee stock counts, and logins.
+                  </p>
+                </div>
+              </div>
+
+              {/* Mobile & Desktop Audit Toolbar: Search & Role Filters */}
+              <div className="p-3 sm:p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-500/5 space-y-2.5">
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={auditSearch}
+                    onChange={(e) => setAuditSearch(e.target.value)}
+                    placeholder="Search logs by action, actor ID (e.g. EMP-2020-01), or keyword..."
+                    className="w-full pl-9 pr-8 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent text-xs focus:outline-none focus:border-[#C8102E]"
+                  />
+                  {auditSearch && (
+                    <button
+                      onClick={() => setAuditSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Role Filter Chips */}
+                <div className="flex items-center justify-between flex-wrap gap-2 pt-1 text-xs">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-semibold text-neutral-500 mr-1">Filter Role:</span>
+                    <button
+                      type="button"
+                      onClick={() => setAuditRoleFilter('ALL')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                        auditRoleFilter === 'ALL'
+                          ? 'bg-[#1B2A49] text-white'
+                          : 'bg-neutral-500/10 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-500/20'
+                      }`}
+                    >
+                      All ({activityLogs.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuditRoleFilter('ADMIN')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                        auditRoleFilter === 'ADMIN'
+                          ? 'bg-[#C8102E] text-white'
+                          : 'bg-red-500/10 text-[#C8102E] dark:text-red-400 hover:bg-red-500/20'
+                      }`}
+                    >
+                      <Shield className="w-3 h-3" />
+                      <span>Admin ({activityLogs.filter((l) => l.actorRole === 'ADMIN').length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuditRoleFilter('EMPLOYEE')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                        auditRoleFilter === 'EMPLOYEE'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20'
+                      }`}
+                    >
+                      <User className="w-3 h-3" />
+                      <span>Staff ({activityLogs.filter((l) => l.actorRole === 'EMPLOYEE').length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuditRoleFilter('SYSTEM')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                        auditRoleFilter === 'SYSTEM'
+                          ? 'bg-sky-600 text-white'
+                          : 'bg-sky-500/10 text-sky-700 dark:text-sky-400 hover:bg-sky-500/20'
+                      }`}
+                    >
+                      <Cpu className="w-3 h-3" />
+                      <span>System ({activityLogs.filter((l) => l.actorRole === 'SYSTEM').length})</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filter Logic */}
+              {(() => {
+                const filteredLogs = activityLogs.filter((log) => {
+                  const matchRole = auditRoleFilter === 'ALL' || log.actorRole === auditRoleFilter;
+                  const q = auditSearch.toLowerCase();
+                  const matchQuery =
+                    !auditSearch ||
+                    log.action.toLowerCase().includes(q) ||
+                    log.actorId.toLowerCase().includes(q) ||
+                    log.details.toLowerCase().includes(q) ||
+                    log.timestamp.toLowerCase().includes(q);
+                  return matchRole && matchQuery;
+                });
+
+                if (filteredLogs.length === 0) {
+                  return (
+                    <div className="p-8 text-center rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-2">
+                      <div className="w-10 h-10 rounded-full bg-neutral-500/10 flex items-center justify-center mx-auto text-neutral-400">
+                        <AlertCircle className="w-5 h-5" />
+                      </div>
+                      <div className="text-sm font-bold">No Audit Logs Match</div>
+                      <p className={`text-xs ${mutedText}`}>
+                        No records match your query &quot;{auditSearch}&quot;.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setAuditSearch('');
+                          setAuditRoleFilter('ALL');
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-[#C8102E] text-white text-xs font-semibold"
+                      >
+                        Reset Filter
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    {/* MOBILE TIMELINE CARDS VIEW (Under 768px - Optimized for Phone Screens) */}
+                    <div className="space-y-3 md:hidden">
+                      {filteredLogs.map((log) => {
+                        const isAdm = log.actorRole === 'ADMIN';
+                        const isEmp = log.actorRole === 'EMPLOYEE';
+                        return (
+                          <div
+                            key={log.id}
+                            className={`p-3.5 rounded-xl border bg-white dark:bg-neutral-900 shadow-xs space-y-2.5 text-xs ${
+                              isAdm
+                                ? 'border-l-4 border-l-[#C8102E] border-neutral-200 dark:border-neutral-800'
+                                : isEmp
+                                ? 'border-l-4 border-l-emerald-500 border-neutral-200 dark:border-neutral-800'
+                                : 'border-l-4 border-l-sky-500 border-neutral-200 dark:border-neutral-800'
+                            }`}
+                          >
+                            {/* Top Row: Role, Actor ID & Timestamp */}
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`inline-flex items-center gap-1 font-mono font-bold text-[10px] px-2 py-0.5 rounded-md ${
+                                    isAdm
+                                      ? 'bg-[#C8102E]/15 text-[#C8102E] dark:text-red-400'
+                                      : isEmp
+                                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                                      : 'bg-sky-500/15 text-sky-700 dark:text-sky-400'
+                                  }`}
+                                >
+                                  {isAdm ? (
+                                    <Shield className="w-2.5 h-2.5" />
+                                  ) : isEmp ? (
+                                    <User className="w-2.5 h-2.5" />
+                                  ) : (
+                                    <Cpu className="w-2.5 h-2.5" />
+                                  )}
+                                  <span>{log.actorRole}</span>
+                                </span>
+                                <span className="font-mono text-xs font-bold text-neutral-800 dark:text-neutral-200">
+                                  {log.actorId}
+                                </span>
+                              </div>
+                              <span className="font-mono-tabular text-[10px] text-neutral-400 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>{log.timestamp}</span>
+                              </span>
+                            </div>
+
+                            {/* Middle Row: Action Code Pill */}
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`font-mono font-bold text-[11px] px-2 py-0.5 rounded ${
+                                  isAdm
+                                    ? 'bg-[#C8102E]/10 text-[#C8102E]'
+                                    : isEmp
+                                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                    : 'bg-neutral-500/10 text-neutral-700 dark:text-neutral-300'
+                                }`}
+                              >
+                                {log.action}
+                              </span>
+                            </div>
+
+                            {/* Bottom Row: Detailed Description */}
+                            <div className="p-2 rounded-lg bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-100 dark:border-neutral-800 text-[11px] text-neutral-700 dark:text-neutral-300 leading-relaxed font-mono">
+                              {log.details}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* DESKTOP & TABLET TABLE VIEW (768px and above with clean horizontal scrolling) */}
+                    <div className="hidden md:block overflow-x-auto rounded-xl border border-neutral-200/80 dark:border-neutral-800">
+                      <table className="w-full text-left text-xs min-w-[680px]">
+                        <thead>
+                          <tr className="border-b border-neutral-200 dark:border-neutral-700 bg-neutral-500/5 text-neutral-500">
+                            <th className="py-2.5 px-3">Timestamp</th>
+                            <th className="py-2.5 px-3">Role</th>
+                            <th className="py-2.5 px-3">Actor ID</th>
+                            <th className="py-2.5 px-3">Action Code</th>
+                            <th className="py-2.5 px-3">Audit Details</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-200/60 dark:divide-neutral-700/60">
+                          {filteredLogs.map((log) => (
+                            <tr key={log.id} className="hover:bg-neutral-500/5 transition-colors">
+                              <td className="py-2.5 px-3 font-mono-tabular whitespace-nowrap text-neutral-400">
+                                {log.timestamp}
+                              </td>
+                              <td className="py-2.5 px-3 font-mono font-semibold whitespace-nowrap">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] inline-flex items-center gap-1 ${
+                                    log.actorRole === 'ADMIN'
+                                      ? 'bg-[#C8102E]/15 text-[#C8102E]'
+                                      : log.actorRole === 'EMPLOYEE'
+                                      ? 'bg-emerald-500/15 text-emerald-600'
+                                      : 'bg-sky-500/15 text-sky-600'
+                                  }`}
+                                >
+                                  {log.actorRole === 'ADMIN' ? (
+                                    <Shield className="w-2.5 h-2.5" />
+                                  ) : (
+                                    <User className="w-2.5 h-2.5" />
+                                  )}
+                                  <span>{log.actorRole}</span>
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 font-mono font-medium">{log.actorId}</td>
+                              <td className="py-2.5 px-3 font-mono text-[#C8102E] font-semibold whitespace-nowrap">
+                                {log.action}
+                              </td>
+                              <td className={`py-2.5 px-3 ${mutedText} font-mono text-[11px]`}>{log.details}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 

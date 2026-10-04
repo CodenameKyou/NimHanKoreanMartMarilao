@@ -540,6 +540,93 @@ $products = $pdo->query("
 </html>`,
   },
   {
+    path: '/css/style.css',
+    category: 'Public Site',
+    language: 'css',
+    description: 'Complete standalone responsive CSS stylesheet with full Light/Dark mode, sticky navbar, hero banner, category filters, and product flashcards.',
+    code: `/* ============================================================================
+ * NIM HAN KOREAN MART - Marilao Branch Stylesheet (/css/style.css)
+ * ============================================================================ */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --color-primary: #C8102E;
+  --color-primary-hover: #A50D26;
+  --color-navy: #1B2A49;
+  --color-gold: #C89B3C;
+  --color-gold-light: #E5B869;
+  --bg-page: #FBF9F5;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F4F1EA;
+  --text-main: #18181B;
+  --text-heading: #1B2A49;
+  --text-muted: #52525B;
+  --text-faint: #71717A;
+  --border-color: #E4E4E7;
+  --border-strong: #D4D4D8;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+}
+
+body.dark-mode {
+  --bg-page: #0B111E;
+  --bg-surface: #131C2E;
+  --bg-subtle: #0F172A;
+  --text-main: #F3F4F6;
+  --text-heading: #FFFFFF;
+  --text-muted: #D1D5DB;
+  --text-faint: #9CA3AF;
+  --border-color: #2D3748;
+  --border-strong: #4A5568;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-page); color: var(--text-main); line-height: 1.6; }
+h1, h2, h3, h4, .brand-title { font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--text-heading); }
+a { color: inherit; text-decoration: none; }
+.announcement-bar { background-color: var(--color-navy); color: #FFF; padding: 8px 16px; font-size: 12px; font-weight: 600; text-align: center; }
+.site-header { position: sticky; top: 0; z-index: 40; background-color: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; max-width: 1280px; margin: 0 auto; }
+.header-brand { display: flex; align-items: center; gap: 12px; }
+.brand-logo { width: 42px; height: 42px; border-radius: 50%; border: 3px solid var(--color-primary); background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; cursor: pointer; }
+.brand-title { font-size: 18px; font-weight: 800; }
+.header-nav { display: flex; gap: 24px; }
+.header-nav a { font-size: 13px; font-weight: 700; color: var(--text-muted); }
+.header-nav a:hover, .header-nav a.active { color: var(--color-primary); }
+.header-actions { display: flex; gap: 10px; }
+.btn-theme-toggle { background: var(--bg-subtle); border: 1px solid var(--border-strong); padding: 8px 14px; border-radius: var(--radius-md); font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-walkin-list { background-color: var(--color-primary); color: #fff; border: none; padding: 8px 16px; border-radius: var(--radius-md); font-size: 13px; font-weight: 700; cursor: pointer; }
+.hero-section { position: relative; background-color: #1B2A49; color: #FFF; padding: 80px 24px; border-bottom: 1px solid var(--border-color); }
+.hero-scrim { position: absolute; inset: 0; background: linear-gradient(to right, rgba(11,17,30,0.95), rgba(27,42,73,0.85)); z-index: 1; }
+.hero-content { position: relative; z-index: 2; max-width: 800px; margin: 0 auto; }
+.hero-kicker { display: inline-block; background: rgba(0,0,0,0.4); color: var(--color-gold-light); padding: 6px 14px; border-radius: 9999px; font-size: 11px; font-weight: 700; margin-bottom: 16px; }
+.hero-content h1 { font-size: 42px; color: #FFF; line-height: 1.15; margin-bottom: 12px; }
+.hero-tagline { font-size: 20px; font-weight: 600; color: var(--color-gold-light); margin-bottom: 16px; }
+.hero-desc { font-size: 15px; color: #E2E8F0; margin-bottom: 24px; }
+.btn-primary { background-color: var(--color-primary); color: #fff; padding: 12px 24px; border-radius: var(--radius-md); font-weight: 700; font-size: 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.btn-outline { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 12px 24px; border-radius: var(--radius-md); font-weight: 700; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
+.section-container { max-width: 1280px; margin: 0 auto; padding: 60px 24px; }
+.catalog-controls { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 16px; margin-bottom: 32px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; }
+.search-wrapper { position: relative; flex: 1; min-width: 260px; }
+.search-input { width: 100%; padding: 10px 14px 10px 38px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-page); color: var(--text-main); font-size: 13px; }
+.category-tabs { display: flex; gap: 6px; background: var(--bg-page); padding: 6px; border-radius: var(--radius-lg); border: 1px solid var(--border-strong); overflow-x: auto; }
+.category-tabs button { background: transparent; border: none; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; color: var(--text-heading); cursor: pointer; }
+.category-tabs button.active { background-color: var(--color-primary); color: #FFF; }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+.product-flashcard { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-xl); overflow: hidden; display: flex; flex-direction: column; }
+.flashcard-media { aspect-ratio: 4/3; background: #E2E8F0; overflow: hidden; }
+.flashcard-media img { width: 100%; height: 100%; object-fit: cover; }
+.flashcard-body { padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; }
+.flashcard-price { font-size: 18px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+.btn-add-walkin { background-color: var(--color-primary); color: #fff; border: none; padding: 8px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; }
+.walkin-drawer { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.6); display: flex; justify-content: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.walkin-drawer.is-open { opacity: 1; pointer-events: auto; }
+.walkin-drawer-content { background: var(--bg-surface); width: 100%; max-width: 440px; height: 100%; display: flex; flex-direction: column; }
+.site-footer { border-top: 1px solid var(--border-color); background: var(--bg-surface); padding: 40px 24px; text-align: center; font-size: 13px; color: var(--text-muted); }
+`,
+  },
+  {
     path: '/js/main.js',
     category: 'Public Site',
     language: 'javascript',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   LayoutDashboard,
   Boxes,
@@ -12,6 +12,16 @@ import {
   CheckCircle2,
   ShieldCheck,
   AlertCircle,
+  Menu,
+  X,
+  Search,
+  Filter,
+  Plus,
+  Minus,
+  Tag,
+  AlertTriangle,
+  ArrowUpRight,
+  Check,
 } from 'lucide-react';
 import { NimHanLogo } from './NimHanLogo';
 import {
@@ -74,12 +84,17 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
   const [activeTab, setActiveTab] = useState<EmployeeTab>('dashboard');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Inventory Update State
+  // Inventory Update State & Mobile Shelf Filters
+  const stockFormRef = useRef<HTMLDivElement>(null);
   const [selectedProdId, setSelectedProdId] = useState<number>(products[0]?.id || 1);
   const [newStockCount, setNewStockCount] = useState<number>(products[0]?.stock || 0);
   const [inventoryNote, setInventoryNote] = useState('');
   const [inventorySuccess, setInventorySuccess] = useState('');
+  const [shelfSearch, setShelfSearch] = useState('');
+  const [shelfCategory, setShelfCategory] = useState('All');
+  const [shelfStatus, setShelfStatus] = useState<'ALL' | 'AVAILABLE' | 'LOW' | 'SOLD OUT'>('ALL');
 
   // Request Form State
   const [reqType, setReqType] = useState<'RESTOCK' | 'LEAVE' | 'DAMAGED_ITEM'>('RESTOCK');
@@ -270,6 +285,39 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
     setTimeout(() => setInventorySuccess(''), 4000);
   };
 
+  // Quick Step adjustment directly from mobile shelf card (+1 or -1)
+  const handleQuickStep = (product: Product, delta: number) => {
+    if (!loggedInEmp) return;
+    const updatedStock = Math.max(0, product.stock + delta);
+    const autoStatus: 'AVAILABLE' | 'SOLD OUT' = updatedStock === 0 ? 'SOLD OUT' : 'AVAILABLE';
+
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, stock: updatedStock, status: autoStatus } : p))
+    );
+
+    const logEntry: InventoryLog = {
+      id: Date.now(),
+      productId: product.id,
+      productName: product.name,
+      changeAmount: delta,
+      newStock: updatedStock,
+      note: `Quick shelf count step (${delta > 0 ? '+' : ''}${delta}) by ${loggedInEmp.employeeId}`,
+      userType: 'EMPLOYEE',
+      userId: loggedInEmp.employeeId,
+      createdAt: new Date().toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }),
+    };
+
+    setInventoryLogs((prev) => [logEntry, ...prev]);
+    appendLog(
+      'EMPLOYEE',
+      loggedInEmp.employeeId,
+      'EMPLOYEE_STOCK_UPDATE',
+      `Quick shelf count: "${product.name}" is now ${updatedStock} units (${autoStatus}).`
+    );
+    setInventorySuccess(`Updated "${product.name}" shelf stock to ${updatedStock} units.`);
+    setTimeout(() => setInventorySuccess(''), 3000);
+  };
+
   const handleClockInOrOut = () => {
     const nowTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     if (!todayRecord) {
@@ -296,15 +344,35 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
 
   return (
     <div className="min-h-screen flex bg-[#FBF9F5] text-[#18181B]">
-      {/* Sidebar */}
-      <aside className="w-64 bg-[#1B2A49] text-white flex flex-col justify-between shrink-0">
+      {/* Mobile Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"
+        />
+      )}
+
+      {/* Sidebar (Slide-In on Mobile/Tablet) */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1B2A49] text-white flex flex-col justify-between transition-transform duration-200 lg:static lg:translate-x-0 ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div>
-          <div className="p-5 border-b border-white/10">
-            <NimHanLogo size="sm" />
-            <div className="mt-2.5 text-xs font-semibold">{loggedInEmp.fullName}</div>
-            <div className="text-[11px] font-mono text-[#C89B3C]">
-              {loggedInEmp.employeeId} · {loggedInEmp.position}
+          <div className="p-5 border-b border-white/10 flex items-center justify-between">
+            <div>
+              <NimHanLogo size="sm" />
+              <div className="mt-2.5 text-xs font-semibold">{loggedInEmp.fullName}</div>
+              <div className="text-[11px] font-mono text-[#C89B3C]">
+                {loggedInEmp.employeeId} · {loggedInEmp.position}
+              </div>
             </div>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-neutral-300"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           <nav className="p-3 space-y-1">
@@ -322,7 +390,10 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id as EmployeeTab)}
+                  onClick={() => {
+                    setActiveTab(item.id as EmployeeTab);
+                    setMobileMenuOpen(false);
+                  }}
                   className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                     active
                       ? 'bg-[#C8102E] text-white'
@@ -361,18 +432,27 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="px-8 py-4 bg-white border-b border-neutral-200 flex items-center justify-between">
-          <div>
-            <div className="text-xs font-mono text-neutral-500">
-              /employee/{activeTab}.php · Isolated Staff Session: {loggedInEmp.employeeId}
+        <header className="px-4 sm:px-8 py-3.5 sm:py-4 bg-white border-b border-neutral-200 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-lg border border-neutral-300 text-neutral-700"
+              aria-label="Open Employee Menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="min-w-0">
+              <div className="text-[11px] font-mono text-neutral-500 truncate">
+                /employee/{activeTab}.php · Staff: {loggedInEmp.employeeId}
+              </div>
+              <h1 className="text-sm sm:text-lg font-bold text-[#1B2A49] truncate">
+                Employee Portal — Marilao Branch
+              </h1>
             </div>
-            <h1 className="text-lg font-bold text-[#1B2A49]">
-              NIM HAN KOREAN MART Marilao Branch — Employee Portal
-            </h1>
           </div>
-          <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+          <div className="hidden sm:flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 shrink-0">
             <ShieldCheck className="w-4 h-4" />
-            <span>Account Isolation Active ({loggedInEmp.employeeId} Only)</span>
+            <span>Isolated Session</span>
           </div>
         </header>
 
@@ -442,26 +522,35 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
             </div>
           )}
 
-          {/* MODULE B: INVENTORY VIEW & STOCK UPDATE */}
+          {/* ================================================================
+              MODULE B: INVENTORY VIEW & STOCK UPDATE
+             ================================================================ */}
           {activeTab === 'inventory' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="p-6 rounded-xl bg-white border border-neutral-200 space-y-4">
-                <h2 className="text-base font-bold text-[#1B2A49]">
-                  Update Shelf Stock & Add Note
-                </h2>
-                <p className="text-xs text-neutral-500">
-                  All changes are logged with your Employee ID (<strong>{loggedInEmp.employeeId}</strong>).
-                </p>
+              {/* Form Column: Shelf Stock Counting Form */}
+              <div ref={stockFormRef} className="p-5 sm:p-6 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-4 h-fit">
+                <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+                  <div>
+                    <h2 className="text-base font-bold text-[#1B2A49]">
+                      Update Shelf Stock & Add Note
+                    </h2>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      Logged with your Employee ID: <strong className="font-mono text-[#C8102E]">{loggedInEmp.employeeId}</strong>
+                    </p>
+                  </div>
+                  <Boxes className="w-5 h-5 text-[#C8102E]" />
+                </div>
 
                 {inventorySuccess && (
-                  <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
-                    {inventorySuccess}
+                  <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2 animate-in fade-in duration-200">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-medium">{inventorySuccess}</span>
                   </div>
                 )}
 
                 <form onSubmit={handleEmployeeStockUpdate} className="space-y-3.5 text-xs">
                   <div>
-                    <label className="block font-semibold mb-1">Select Product</label>
+                    <label className="block font-semibold mb-1 text-neutral-700">Select Shelf Product</label>
                     <select
                       value={selectedProdId}
                       onChange={(e) => {
@@ -470,86 +559,439 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
                         const found = products.find((p) => p.id === pid);
                         if (found) setNewStockCount(found.stock);
                       }}
-                      className="w-full px-3 py-2 rounded-lg border border-neutral-300"
+                      className="w-full px-3 py-2.5 rounded-xl border border-neutral-300 focus:outline-none focus:border-[#C8102E] text-xs"
                     >
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name} (Current: {p.stock})
+                          {p.name} · [{p.category}] (Shelf: {p.stock})
                         </option>
                       ))}
                     </select>
                   </div>
+
                   <div>
-                    <label className="block font-semibold mb-1">Updated Physical Stock Count</label>
-                    <input
-                      type="number"
-                      min={0}
-                      required
-                      value={newStockCount}
-                      onChange={(e) => setNewStockCount(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-lg border border-neutral-300 font-mono-tabular"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-neutral-700">Physical Stock Count Verified</label>
+                      <span className="text-[11px] text-neutral-400">Current on public site: {products.find(p => p.id === Number(selectedProdId))?.stock || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setNewStockCount((prev) => Math.max(0, prev - 1))}
+                        className="w-9 h-9 rounded-lg border border-neutral-300 bg-neutral-50 hover:bg-neutral-100 flex items-center justify-center text-neutral-700 active:scale-95"
+                        title="Minus 1"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <input
+                        type="number"
+                        min={0}
+                        required
+                        value={newStockCount}
+                        onChange={(e) => setNewStockCount(Number(e.target.value))}
+                        className="flex-1 px-3 py-2 rounded-xl border border-neutral-300 font-mono-tabular text-center text-sm font-bold focus:outline-none focus:border-[#C8102E]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNewStockCount((prev) => prev + 1)}
+                        className="w-9 h-9 rounded-lg border border-neutral-300 bg-neutral-50 hover:bg-neutral-100 flex items-center justify-center text-neutral-700 active:scale-95"
+                        title="Plus 1"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
+
                   <div>
-                    <label className="block font-semibold mb-1">
-                      Shelf Note (Restock Request / Damaged Pack / Expiry Check)
+                    <label className="block font-semibold mb-1 text-neutral-700">
+                      Shelf Note (Gondola / Restock / Expiry / Damaged Pack)
                     </label>
                     <textarea
                       rows={3}
                       required
                       value={inventoryNote}
                       onChange={(e) => setInventoryNote(e.target.value)}
-                      placeholder="e.g. Restocked 12 packs on Gondola 2; 1 pack dented and moved to backroom"
-                      className="w-full px-3 py-2 rounded-lg border border-neutral-300"
+                      placeholder="e.g. Restocked 12 packs on Gondola 2; verified FEFO expiry date"
+                      className="w-full px-3 py-2 rounded-xl border border-neutral-300 focus:outline-none focus:border-[#C8102E] text-xs"
                     />
                   </div>
+
                   <button
                     type="submit"
-                    className="w-full py-2.5 px-4 rounded-lg bg-[#C8102E] hover:bg-[#A50D26] text-white font-semibold transition-colors"
+                    className="w-full py-2.5 px-4 rounded-xl bg-[#C8102E] hover:bg-[#A50D26] text-white font-bold text-xs transition-colors shadow-xs flex items-center justify-center gap-2"
                   >
-                    Save Stock Count ({loggedInEmp.employeeId})
+                    <Check className="w-4 h-4" />
+                    <span>Save Stock Count ({loggedInEmp.employeeId})</span>
                   </button>
                 </form>
               </div>
 
-              <div className="lg:col-span-2 p-6 rounded-xl bg-white border border-neutral-200">
-                <h2 className="text-base font-bold text-[#1B2A49] mb-4">
-                  Live Store Shelf Inventory
-                </h2>
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-neutral-200 text-neutral-500">
-                      <th className="py-2.5 px-3">Product</th>
-                      <th className="py-2.5 px-3">Category</th>
-                      <th className="py-2.5 px-3 text-right">Stock</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3">Expiry Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-200/70">
-                    {products.map((p) => (
-                      <tr key={p.id}>
-                        <td className="py-2.5 px-3 font-medium">{p.name}</td>
-                        <td className="py-2.5 px-3 text-neutral-500">{p.category}</td>
-                        <td className="py-2.5 px-3 text-right font-mono-tabular font-semibold">
-                          {p.stock}
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <span
-                            className={
-                              p.status === 'AVAILABLE' && p.stock > 0
-                                ? 'text-emerald-600 font-semibold'
-                                : 'text-[#C8102E] font-semibold'
-                            }
-                          >
-                            {p.status}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 font-mono-tabular">{p.expiryDate}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* Shelf Inventory View Column (Mobile Cards + Desktop Table) */}
+              <div className="lg:col-span-2 p-5 sm:p-6 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-4">
+                {/* Header & Quick Inventory Stats */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base sm:text-lg font-bold text-[#1B2A49]">
+                        Live Store Shelf Inventory
+                      </h2>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
+                        {products.length} Products
+                      </span>
+                    </div>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      Verify physical quantities on store shelves · Tap &quot;Count&quot; to auto-load item
+                    </p>
+                  </div>
+
+                  {/* Summary Badges */}
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-semibold text-[11px] flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3 text-amber-600" />
+                      <span>{products.filter(p => p.stock > 0 && p.stock <= p.lowStockThreshold).length} Low Stock</span>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-red-50 text-[#C8102E] border border-red-200 font-semibold text-[11px]">
+                      {products.filter(p => p.stock === 0 || p.status === 'SOLD OUT').length} Sold Out
+                    </span>
+                  </div>
+                </div>
+
+                {/* Mobile & Tablet Search Bar & Category Filter Bar */}
+                <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/80 space-y-2.5">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={shelfSearch}
+                      onChange={(e) => setShelfSearch(e.target.value)}
+                      placeholder="Search Korean ramen, snacks, drinks on shelves..."
+                      className="w-full pl-9 pr-8 py-2 rounded-lg border border-neutral-300 bg-white text-xs focus:outline-none focus:border-[#C8102E]"
+                    />
+                    {shelfSearch && (
+                      <button
+                        onClick={() => setShelfSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-0.5"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Category Pills & Status Filter */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {['All', 'Noodles', 'Snacks', 'Sauces', 'Drinks', 'Frozen'].map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setShelfCategory(cat)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                            shelfCategory === cat
+                              ? 'bg-[#1B2A49] text-white'
+                              : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-100'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setShelfStatus('ALL')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                          shelfStatus === 'ALL' ? 'bg-neutral-700 text-white' : 'text-neutral-500 hover:bg-neutral-200'
+                        }`}
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShelfStatus('AVAILABLE')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                          shelfStatus === 'AVAILABLE' ? 'bg-emerald-600 text-white' : 'text-emerald-700 hover:bg-emerald-50'
+                        }`}
+                      >
+                        In Stock
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShelfStatus('LOW')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                          shelfStatus === 'LOW' ? 'bg-amber-600 text-white' : 'text-amber-700 hover:bg-amber-50'
+                        }`}
+                      >
+                        Low
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShelfStatus('SOLD OUT')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                          shelfStatus === 'SOLD OUT' ? 'bg-[#C8102E] text-white' : 'text-red-700 hover:bg-red-50'
+                        }`}
+                      >
+                        Sold Out
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter Logic */}
+                {(() => {
+                  const filteredProducts = products.filter((p) => {
+                    const matchSearch =
+                      p.name.toLowerCase().includes(shelfSearch.toLowerCase()) ||
+                      p.koreanName.toLowerCase().includes(shelfSearch.toLowerCase()) ||
+                      p.category.toLowerCase().includes(shelfSearch.toLowerCase());
+                    const matchCat =
+                      shelfCategory === 'All' || p.category.toLowerCase() === shelfCategory.toLowerCase();
+                    const isSoldOut = p.status === 'SOLD OUT' || p.stock <= 0;
+                    const isLow = p.stock > 0 && p.stock <= p.lowStockThreshold;
+                    const matchStatus =
+                      shelfStatus === 'ALL' ||
+                      (shelfStatus === 'AVAILABLE' && !isSoldOut && !isLow) ||
+                      (shelfStatus === 'LOW' && isLow) ||
+                      (shelfStatus === 'SOLD OUT' && isSoldOut);
+                    return matchSearch && matchCat && matchStatus;
+                  });
+
+                  if (filteredProducts.length === 0) {
+                    return (
+                      <div className="p-8 text-center rounded-xl border border-neutral-200 space-y-2">
+                        <Boxes className="w-8 h-8 text-neutral-400 mx-auto" />
+                        <div className="text-sm font-bold text-neutral-700">No Shelf Products Found</div>
+                        <p className="text-xs text-neutral-500">
+                          No items match your search &quot;{shelfSearch}&quot; in category &quot;{shelfCategory}&quot;.
+                        </p>
+                        <button
+                          onClick={() => {
+                            setShelfSearch('');
+                            setShelfCategory('All');
+                            setShelfStatus('ALL');
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-[#C8102E] text-white text-xs font-semibold"
+                        >
+                          Clear Filters
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      {/* ========================================================
+                          MOBILE SHELF CARDS VIEW (Under 768px - Optimized for Store Walk-In Staff)
+                         ======================================================== */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:hidden">
+                        {filteredProducts.map((p) => {
+                          const isSoldOut = p.status === 'SOLD OUT' || p.stock <= 0;
+                          const isLow = p.stock > 0 && p.stock <= p.lowStockThreshold;
+                          return (
+                            <div
+                              key={p.id}
+                              className={`p-3.5 rounded-xl border flex flex-col justify-between gap-3 shadow-xs bg-white transition-all ${
+                                isSoldOut
+                                  ? 'border-red-200 bg-red-50/20'
+                                  : isLow
+                                  ? 'border-amber-200 bg-amber-50/20'
+                                  : 'border-neutral-200'
+                              }`}
+                            >
+                              {/* Top Row: Thumbnail + Info */}
+                              <div className="flex items-start gap-3">
+                                <img
+                                  src={p.image}
+                                  alt={p.name}
+                                  referrerPolicy="no-referrer"
+                                  className={`w-16 h-16 rounded-xl object-cover shrink-0 border border-neutral-200 ${
+                                    isSoldOut ? 'grayscale opacity-60' : ''
+                                  }`}
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 text-[10px]">
+                                    <span className="font-bold uppercase tracking-wider text-[#C89B3C]">
+                                      {p.category}
+                                    </span>
+                                    <span>·</span>
+                                    <span
+                                      className={`font-bold ${
+                                        isSoldOut
+                                          ? 'text-[#C8102E]'
+                                          : isLow
+                                          ? 'text-amber-600'
+                                          : 'text-emerald-600'
+                                      }`}
+                                    >
+                                      {isSoldOut ? 'SOLD OUT' : isLow ? 'LOW STOCK' : 'AVAILABLE'}
+                                    </span>
+                                  </div>
+                                  <h4 className="font-bold text-xs leading-snug line-clamp-2 mt-0.5 text-neutral-900">
+                                    {p.name}
+                                  </h4>
+                                  <div className="text-[11px] text-neutral-400 line-clamp-1">
+                                    {p.koreanName}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Middle: Stock Level & Expiry */}
+                              <div className="flex items-center justify-between p-2 rounded-lg bg-neutral-100/70 text-xs font-mono-tabular">
+                                <div>
+                                  <span className="text-[10px] text-neutral-500 uppercase block">Shelf Count:</span>
+                                  <span
+                                    className={`text-sm font-extrabold ${
+                                      p.stock === 0
+                                        ? 'text-[#C8102E]'
+                                        : p.stock <= p.lowStockThreshold
+                                        ? 'text-amber-600'
+                                        : 'text-emerald-700'
+                                    }`}
+                                  >
+                                    {p.stock} units
+                                  </span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-[10px] text-neutral-500 uppercase block">FEFO Expiry:</span>
+                                  <span className="text-[11px] font-semibold text-neutral-700 flex items-center gap-1 justify-end">
+                                    <Clock className="w-3 h-3 text-neutral-400" />
+                                    <span>{p.expiryDate}</span>
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Bottom: Quick Stepper [-] [+] & Count Shortcut */}
+                              <div className="flex items-center gap-2 pt-1 border-t border-neutral-100">
+                                {/* Quick Step Counter */}
+                                <div className="flex items-center border border-neutral-200 rounded-lg overflow-hidden shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickStep(p, -1)}
+                                    className="px-2 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 active:scale-95 text-xs font-bold"
+                                    title="Minus 1 from shelf"
+                                  >
+                                    -1
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickStep(p, 1)}
+                                    className="px-2 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 active:scale-95 text-xs font-bold border-l border-neutral-200"
+                                    title="Plus 1 to shelf"
+                                  >
+                                    +1
+                                  </button>
+                                </div>
+
+                                {/* Full Count & Update Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedProdId(p.id);
+                                    setNewStockCount(p.stock);
+                                    stockFormRef.current?.scrollIntoView({ behavior: 'smooth' });
+                                  }}
+                                  className="flex-1 py-1.5 px-2.5 rounded-lg bg-[#1B2A49] hover:bg-[#111C33] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                                >
+                                  <span>Count & Update</span>
+                                  <ArrowUpRight className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* ========================================================
+                          DESKTOP & TABLET TABLE VIEW (768px and above)
+                         ======================================================== */}
+                      <div className="hidden md:block overflow-x-auto rounded-xl border border-neutral-200">
+                        <table className="w-full text-left text-xs min-w-[620px]">
+                          <thead>
+                            <tr className="border-b border-neutral-200 bg-neutral-50 text-neutral-500 font-semibold">
+                              <th className="py-2.5 px-3">Product</th>
+                              <th className="py-2.5 px-3">Category</th>
+                              <th className="py-2.5 px-3 text-right">Physical Stock</th>
+                              <th className="py-2.5 px-3">Status</th>
+                              <th className="py-2.5 px-3">Expiry Date</th>
+                              <th className="py-2.5 px-3 text-right">Floor Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-neutral-200/70">
+                            {filteredProducts.map((p) => {
+                              const isSoldOut = p.status === 'SOLD OUT' || p.stock <= 0;
+                              const isLow = p.stock > 0 && p.stock <= p.lowStockThreshold;
+                              return (
+                                <tr key={p.id} className="hover:bg-neutral-50/70 transition-colors">
+                                  <td className="py-2.5 px-3">
+                                    <div className="flex items-center gap-2.5">
+                                      <img
+                                        src={p.image}
+                                        alt={p.name}
+                                        referrerPolicy="no-referrer"
+                                        className="w-10 h-10 rounded-lg object-cover border border-neutral-200 shrink-0"
+                                      />
+                                      <div>
+                                        <div className="font-semibold text-neutral-900">{p.name}</div>
+                                        <div className="text-[11px] text-neutral-400">{p.koreanName}</div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-2.5 px-3">
+                                    <span className="px-2 py-0.5 rounded bg-neutral-100 text-neutral-700 text-[11px]">
+                                      {p.category}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-mono-tabular font-bold text-sm">
+                                    <span
+                                      className={
+                                        p.stock === 0
+                                          ? 'text-[#C8102E]'
+                                          : p.stock <= p.lowStockThreshold
+                                          ? 'text-amber-600'
+                                          : 'text-emerald-700'
+                                      }
+                                    >
+                                      {p.stock}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 whitespace-nowrap">
+                                    <span
+                                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                        isSoldOut
+                                          ? 'bg-red-50 text-[#C8102E] border border-red-200'
+                                          : isLow
+                                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      }`}
+                                    >
+                                      {isSoldOut ? 'SOLD OUT' : isLow ? 'LOW STOCK' : 'AVAILABLE'}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 font-mono-tabular text-neutral-600 whitespace-nowrap">
+                                    {p.expiryDate}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedProdId(p.id);
+                                        setNewStockCount(p.stock);
+                                        stockFormRef.current?.scrollIntoView({ behavior: 'smooth' });
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg bg-[#1B2A49] hover:bg-[#111C33] text-white text-[11px] font-medium transition-colors"
+                                    >
+                                      Count & Log
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}

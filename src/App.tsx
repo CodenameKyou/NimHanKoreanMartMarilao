@@ -5,6 +5,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
+  Home,
+  Package,
   Search,
   Heart,
   BellRing,
@@ -366,7 +368,7 @@ export default function App() {
   // PUBLIC WEBSITE (/index.php)
   // ==========================================================================
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-200 pb-16 md:pb-0 ${pageBg}`}>
+    <div className={`min-h-screen flex flex-col transition-colors duration-200 pb-24 lg:pb-0 ${pageBg}`}>
       {/* Loading Splash Screen */}
       {showSplash && (
         <div className="fixed inset-0 z-50 bg-[#0A0A0A] text-white flex flex-col items-center justify-center transition-opacity duration-300">
@@ -380,9 +382,9 @@ export default function App() {
 
       {/* Editable Top Announcement Banner (Clean for Public Consumers - No Staff/Code Links) */}
       {storeSettings.announcementActive && (
-        <div className="bg-[#1B2A49] text-white px-4 py-2 text-xs text-center border-b border-white/10">
+        <div className="bg-[#1B2A49] text-white px-3 sm:px-4 py-2 text-xs text-center border-b border-white/10">
           <div className="max-w-7xl mx-auto flex items-center justify-center">
-            <p className="font-medium leading-snug">
+            <p className="font-medium text-[11px] sm:text-xs leading-snug">
               {storeSettings.announcementBanner}
             </p>
           </div>
@@ -390,9 +392,9 @@ export default function App() {
       )}
 
       {/* ====================================================================
-          STICKY NAVBAR (Strict 3-Zone Top Bar Contract)
+          STICKY NAVBAR (Strict 3-Zone Top Bar Contract - Mobile & Tablet Optimized)
           Zone 1: Logo + "Nim Han Korean Mart"
-          Zone 2: HOME | ABOUT | PRODUCTS | CONTACT
+          Zone 2: HOME | ABOUT | PRODUCTS | CONTACT (Desktop lg+)
           Zone 3: Consumer Dark Mode Toggle + Walk-In List Button
          ==================================================================== */}
       <header
@@ -402,9 +404,9 @@ export default function App() {
             : 'bg-white/95 border-neutral-200/90'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-15 sm:h-18 lg:h-20 flex items-center justify-between gap-2 sm:gap-4">
           {/* Zone 1: Brand Logo (10-Click Secret Trigger) + "Nim Han Korean Mart" */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {/* <!-- ===== [CHANGE LOGO IMAGE HERE] ===== --> */}
             <NimHanLogo onClick={handleSecretLogoClick} size="sm" />
             {/* <!-- ===== [CHANGE STORE NAME / TAGLINE HERE] ===== --> */}
@@ -414,14 +416,15 @@ export default function App() {
                 e.preventDefault();
                 navigateToSection('home');
               }}
-              className={`font-heading font-extrabold text-base sm:text-xl tracking-tight truncate ${headingText}`}
+              className={`font-heading font-extrabold text-sm sm:text-lg lg:text-xl tracking-tight truncate ${headingText}`}
             >
-              Nim Han Korean Mart
+              <span className="hidden xs:inline">Nim Han Korean Mart</span>
+              <span className="xs:hidden">Nim Han</span>
             </a>
           </div>
 
           {/* Zone 2: Primary Navigation Links (HOME | ABOUT | PRODUCTS | CONTACT) */}
-          <nav className="hidden md:flex items-center gap-7 text-xs font-bold tracking-wider">
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-xs font-bold tracking-wider">
             {(
               [
                 { id: 'home', label: 'HOME' },
@@ -447,11 +450,11 @@ export default function App() {
           </nav>
 
           {/* Zone 3: Consumer Dark Mode Toggle & Walk-In Shopping List Drawer Trigger */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               aria-label="Toggle Dark or Light Mode"
-              className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 btn-interactive ${
+              className={`p-2 sm:p-2.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 btn-interactive ${
                 isDarkMode
                   ? 'bg-[#1E293B] border-neutral-700 text-amber-300 hover:bg-neutral-800'
                   : 'bg-[#FBF9F5] border-neutral-300 text-[#1B2A49] hover:bg-neutral-100'
@@ -461,22 +464,24 @@ export default function App() {
               {isDarkMode ? (
                 <>
                   <Sun className="w-4 h-4 text-amber-400" />
-                  <span className="hidden lg:inline">Light</span>
+                  <span className="hidden xl:inline">Light</span>
                 </>
               ) : (
                 <>
                   <Moon className="w-4 h-4 text-[#1B2A49]" />
-                  <span className="hidden lg:inline">Dark</span>
+                  <span className="hidden xl:inline">Dark</span>
                 </>
               )}
             </button>
 
             <button
               onClick={() => setIsWalkInDrawerOpen(true)}
-              className="px-3.5 sm:px-4 py-2.5 rounded-xl bg-[#C8102E] hover:bg-[#A50D26] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs whitespace-nowrap btn-interactive"
+              className="px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#C8102E] hover:bg-[#A50D26] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs whitespace-nowrap btn-interactive"
             >
               <ShoppingBag className="w-4 h-4 shrink-0" />
-              <span>Walk-In List ({walkInTotalCount})</span>
+              <span className="hidden sm:inline">Walk-In List</span>
+              <span className="sm:hidden">List</span>
+              <span>({walkInTotalCount})</span>
             </button>
           </div>
         </div>
@@ -510,39 +515,39 @@ export default function App() {
           />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-28 text-white">
-          <div className="max-w-3xl space-y-5 text-left">
-            <div className="inline-flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-[#E5B869] bg-black/35 px-3 py-1.5 rounded-full backdrop-blur-xs border border-white/15">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 lg:py-24 text-white">
+          <div className="max-w-3xl space-y-3.5 sm:space-y-5 text-left">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-bold tracking-wider uppercase text-[#E5B869] bg-black/40 px-3 py-1 rounded-full backdrop-blur-xs border border-white/15">
               <span>환영합니다 · Welcome Walk-In Shoppers</span>
             </div>
 
             {/* <!-- ===== [CHANGE STORE NAME / TAGLINE HERE] ===== --> */}
             <h1
-              className="text-3xl sm:text-4xl lg:text-5xl font-heading font-extrabold tracking-tight leading-[1.12] text-white drop-shadow-sm"
+              className="text-2xl sm:text-4xl lg:text-5xl font-heading font-extrabold tracking-tight leading-[1.15] text-white drop-shadow-sm"
               style={{ textWrap: 'balance' }}
             >
               {storeSettings.storeName}
             </h1>
 
-            <p className="text-lg sm:text-2xl font-semibold text-[#E5B869] drop-shadow-xs">
+            <p className="text-base sm:text-xl lg:text-2xl font-semibold text-[#E5B869] drop-shadow-xs">
               “{storeSettings.tagline}”
             </p>
 
-            <p className="text-sm sm:text-base leading-relaxed text-neutral-100 max-w-2xl font-normal drop-shadow-xs">
+            <p className="text-xs sm:text-sm lg:text-base leading-relaxed text-neutral-100 max-w-2xl font-normal drop-shadow-xs">
               Browse our live shelf inventory from your phone, build your personal walk-in shopping checklist, and visit us along McArthur Highway in Marilao for authentic Samyang Buldak, Shin Ramyun, Binggrae Banana Milk, and Korean street snacks.
             </p>
 
-            <div className="pt-3 flex flex-wrap items-center gap-3.5">
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3.5">
               <button
                 onClick={() => navigateToSection('products')}
-                className="px-6 py-3.5 rounded-xl bg-[#C8102E] hover:bg-[#A50D26] text-white text-sm font-bold flex items-center gap-2 shadow-lg btn-interactive"
+                className="w-full sm:w-auto px-5 sm:px-6 py-3 rounded-xl bg-[#C8102E] hover:bg-[#A50D26] text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-lg btn-interactive"
               >
                 <ShoppingBag className="w-4 h-4" />
                 Browse Store Flashcards
               </button>
               <button
                 onClick={() => navigateToSection('contact')}
-                className="px-5 py-3.5 rounded-xl border border-white/35 bg-white/10 hover:bg-white/20 text-white text-sm font-bold flex items-center gap-2 backdrop-blur-xs btn-interactive"
+                className="w-full sm:w-auto px-4 sm:px-5 py-3 rounded-xl border border-white/35 bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 backdrop-blur-xs btn-interactive"
               >
                 <MapPin className="w-4 h-4 text-[#E5B869]" />
                 Walk-In Store Location
@@ -550,12 +555,12 @@ export default function App() {
             </div>
 
             {/* Unboxed Metadata Bar */}
-            <div className="pt-3 flex flex-wrap items-center gap-2 text-xs font-medium text-neutral-200">
-              <span className="bg-black/30 px-2.5 py-1 rounded-md border border-white/10">Walk-In Shopping Only</span>
-              <span aria-hidden="true">·</span>
-              <span className="bg-black/30 px-2.5 py-1 rounded-md border border-white/10">100% Authentic Korean Imports</span>
-              <span aria-hidden="true">·</span>
-              <span className="bg-black/30 px-2.5 py-1 rounded-md border border-white/10">Open Daily 8:00 AM – 10:00 PM</span>
+            <div className="pt-2 flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-medium text-neutral-200">
+              <span className="bg-black/35 px-2.5 py-1 rounded-md border border-white/10">Walk-In Only</span>
+              <span aria-hidden="true" className="opacity-40">·</span>
+              <span className="bg-black/35 px-2.5 py-1 rounded-md border border-white/10">100% Authentic Korean</span>
+              <span aria-hidden="true" className="opacity-40">·</span>
+              <span className="bg-black/35 px-2.5 py-1 rounded-md border border-white/10">Daily 8 AM – 10 PM</span>
             </div>
           </div>
         </div>
@@ -719,27 +724,48 @@ export default function App() {
 
           {/* Responsive Search Bar, Horizontal Swipeable Category Filter & Sort */}
           <div
-            className={`flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5 p-4 rounded-2xl border ${subtleSurface}`}
+            className={`flex flex-col gap-3 p-3 sm:p-4 rounded-2xl border ${subtleSurface}`}
           >
-            {/* Search Input */}
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search Buldak, Shin Ramyun, Gochujang, Banana Milk..."
-                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#C8102E] ${
-                  isDarkMode
-                    ? 'bg-[#1E293B] border-neutral-700 text-white placeholder:text-neutral-400'
-                    : 'bg-white border-neutral-300 text-neutral-900'
-                }`}
-              />
+            {/* Top Row: Search Input + Sort Dropdown */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              {/* Search Input */}
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search Buldak, Shin Ramyun, Gochujang, Banana Milk..."
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#C8102E] ${
+                    isDarkMode
+                      ? 'bg-[#1E293B] border-neutral-700 text-white placeholder:text-neutral-400'
+                      : 'bg-white border-neutral-300 text-neutral-900'
+                  }`}
+                />
+              </div>
+
+              {/* Sort Select */}
+              <div className="shrink-0">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className={`w-full sm:w-auto px-3.5 py-2.5 rounded-xl border text-xs font-semibold focus:outline-none focus:border-[#C8102E] ${
+                    isDarkMode
+                      ? 'bg-[#1E293B] border-neutral-700 text-white'
+                      : 'bg-white border-neutral-300 text-neutral-700'
+                  }`}
+                >
+                  <option value="featured">Sort: Featured & Best Sellers</option>
+                  <option value="price-asc">Sort: Price (Low to High)</option>
+                  <option value="price-desc">Sort: Price (High to Low)</option>
+                  <option value="name-asc">Sort: Name (A to Z)</option>
+                </select>
+              </div>
             </div>
 
-            {/* Mobile-Friendly Swipeable Category Tabs */}
+            {/* Bottom Row: Smooth Horizontal Scrollable Category Tabs */}
             <div
-              className={`flex items-center gap-1.5 p-1.5 rounded-xl border overflow-x-auto no-scrollbar shadow-xs ${
+              className={`flex items-center gap-1.5 p-1 rounded-xl border overflow-x-auto no-scrollbar shadow-xs touch-pan-x overscroll-x-contain ${
                 isDarkMode
                   ? 'bg-[#0B111E] border-neutral-700/80'
                   : 'bg-white border-neutral-300'
@@ -749,7 +775,7 @@ export default function App() {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap btn-interactive ${
+                  className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap btn-interactive ${
                     selectedCategory === cat
                       ? 'bg-[#C8102E] text-white shadow-xs'
                       : isDarkMode
@@ -761,26 +787,10 @@ export default function App() {
                 </button>
               ))}
             </div>
-
-            {/* Sort Select */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className={`px-3.5 py-2.5 rounded-xl border text-xs font-semibold focus:outline-none focus:border-[#C8102E] ${
-                isDarkMode
-                  ? 'bg-[#1E293B] border-neutral-700 text-white'
-                  : 'bg-white border-neutral-300 text-neutral-700'
-              }`}
-            >
-              <option value="featured">Sort: Featured & Best Sellers</option>
-              <option value="price-asc">Sort: Price (Low to High)</option>
-              <option value="price-desc">Sort: Price (High to Low)</option>
-              <option value="name-asc">Sort: Name (A to Z)</option>
-            </select>
           </div>
 
           {/* Product Flashcards Responsive Grid (1 col mobile, 2 col tablet, 3 col desktop) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* <!-- ===== [ADD OR DUPLICATE A PRODUCT FLASHCARD HERE] ===== --> */}
             {filteredProducts.map((product) => {
               const isSoldOut = product.status === 'SOLD OUT' || product.stock <= 0;
@@ -1253,38 +1263,57 @@ export default function App() {
       </footer>
 
       {/* ====================================================================
-          MOBILE BOTTOM THUMB NAVIGATION BAR (iPhone / Android Responsive)
+          MOBILE & TABLET BOTTOM THUMB NAVIGATION BAR (Clean Native Mobile Feel)
          ==================================================================== */}
       <nav
-        className={`md:hidden fixed bottom-0 left-0 right-0 z-40 border-t px-2 py-1.5 flex items-center justify-around text-[11px] font-bold ${
+        className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t px-2 py-2 flex items-center justify-around text-[10px] font-bold pb-[max(0.5rem,env(safe-area-inset-bottom))] ${
           isDarkMode
             ? 'bg-[#0F172A]/95 border-neutral-800 text-neutral-300'
             : 'bg-white/95 border-neutral-200 text-neutral-600'
-        } backdrop-blur-md`}
+        } backdrop-blur-md shadow-lg`}
       >
-        {(
-          [
-            { id: 'home', label: 'Home' },
-            { id: 'products', label: 'Products' },
-            { id: 'about', label: 'About' },
-            { id: 'contact', label: 'Visit Us' },
-          ] as const
-        ).map((item) => (
-          <button
-            key={item.id}
-            onClick={() => navigateToSection(item.id)}
-            className={`px-3 py-1.5 rounded-lg transition-colors btn-interactive ${
-              activePublicTab === item.id ? 'text-[#C8102E] font-extrabold' : ''
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+        <button
+          onClick={() => navigateToSection('home')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg transition-colors btn-interactive ${
+            activePublicTab === 'home' ? 'text-[#C8102E] font-extrabold' : ''
+          }`}
+        >
+          <Home className="w-4 h-4" />
+          <span>Home</span>
+        </button>
+        <button
+          onClick={() => navigateToSection('products')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg transition-colors btn-interactive ${
+            activePublicTab === 'products' ? 'text-[#C8102E] font-extrabold' : ''
+          }`}
+        >
+          <Package className="w-4 h-4" />
+          <span>Products</span>
+        </button>
+        <button
+          onClick={() => navigateToSection('about')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg transition-colors btn-interactive ${
+            activePublicTab === 'about' ? 'text-[#C8102E] font-extrabold' : ''
+          }`}
+        >
+          <Store className="w-4 h-4" />
+          <span>About</span>
+        </button>
+        <button
+          onClick={() => navigateToSection('contact')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg transition-colors btn-interactive ${
+            activePublicTab === 'contact' ? 'text-[#C8102E] font-extrabold' : ''
+          }`}
+        >
+          <MapPin className="w-4 h-4" />
+          <span>Store</span>
+        </button>
         <button
           onClick={() => setIsWalkInDrawerOpen(true)}
-          className="px-3 py-1.5 rounded-lg bg-[#C8102E] text-white font-extrabold btn-interactive"
+          className="flex flex-col items-center gap-1 py-1 px-3 rounded-xl bg-[#C8102E] text-white font-extrabold shadow-sm active:scale-95 transition-transform"
         >
-          List ({walkInTotalCount})
+          <ShoppingBag className="w-4 h-4" />
+          <span>List ({walkInTotalCount})</span>
         </button>
       </nav>
 

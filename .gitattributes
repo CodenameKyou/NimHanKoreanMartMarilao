@@ -1,0 +1,20 @@
+# ==============================================================================
+# GitHub Linguist Language Detection Configuration
+# Controls the language breakdown bar shown on GitHub
+# ==============================================================================
+
+# Treat generated lockfiles and metadata as non-code
+package-lock.json linguist-generated
+bun.lock linguist-generated
+metadata.json linguist-generated
+
+# If you want GitHub to recognize HTML and CSS prominently:
+index.html linguist-detectable=true
+src/index.css linguist-detectable=true
+
+# Keep data and mock files from overwhelming the language statistics
+src/data/** linguist-vendored
+
+# Classify React TSX as JavaScript/HTML if desired by recruiters or class projects
+# (Uncomment below if you want your repo to show as JavaScript instead of TypeScript)
+# *.tsx linguist-language=JavaScript

@@ -1,0 +1,6 @@
+{
+  "name": "NIM HAN KOREAN MART - Marilao Branch",
+  "description": "Authentic Korean Flavors, Right in Your Neighborhood. Official store website, inventory system, employee portal, and admin CCTV dashboard for NIM HAN KOREAN MART Marilao Branch.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

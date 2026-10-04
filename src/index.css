@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   NIM HAN KOREAN MART - GLOBAL STYLES & CSS VARIABLES
+   All colors, fonts, and spacing are defined in :root for easy customization.
+   ========================================================================== */
+
+:root {
+  /* ===== [CHANGE PRIMARY COLOR HERE] ===== */
+  --color-korean-red: #C8102E;
+  --color-korean-red-hover: #A50D26;
+  --color-deep-navy: #1B2A49;
+  --color-deep-navy-dark: #111C33;
+  --color-gold-accent: #C89B3C;
+  --color-brand-green: #2ECC40;
+  --color-bg-cream: #FBF9F5;
+  --color-surface-white: #FFFFFF;
+  --color-text-primary: #18181B;
+  --color-text-muted: #52525B;
+  --color-border-subtle: rgba(27, 42, 73, 0.1);
+
+  /* ===== [CHANGE FONT HERE] ===== */
+  --font-heading: 'Outfit', 'Plus Jakarta Sans', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* ===== [CHANGE SPACING & RADIUS HERE] ===== */
+  --radius-card: 16px;
+  --radius-btn: 10px;
+  --transition-fast: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg-cream);
+  color: var(--color-text-primary);
+  overflow-x: hidden;
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+.font-mono-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Smooth composited hover lift and tactile click animation for flashcards & buttons */
+.flashcard-hover {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.flashcard-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px -8px rgba(27, 42, 73, 0.14);
+}
+
+.flashcard-hover:active {
+  transform: scale(0.985);
+}
+
+.btn-interactive {
+  transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.btn-interactive:active {
+  transform: scale(0.95);
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-pop-in {
+  animation: popIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Hide scrollbars on horizontal mobile filter strips while keeping swipeability */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flashcard-hover {
+    transition: none;
+  }
+  .flashcard-hover:hover {
+    transform: none;
+  }
+}
+
